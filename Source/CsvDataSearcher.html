@@ -1,0 +1,239 @@
+<html>
+<body>
+
+<div id="divUi">
+
+	<h3>CSV Data Searcher</h3>
+
+	<p>
+		Upload a data file in CSV ("Comma-Separated Value") format,
+		and with the field headings given on the first time,
+		then enter search criterion and click the Find button
+		to find matching entries.
+	</p>
+
+	<div>
+		<label>Data in CSV Format:</label>
+		<br />
+		<input type="file" onchange="inputFile_Changed(this)"></input>
+		<br />
+		<textarea
+			id="textreaDataAsCsv"
+			cols="80" rows="10"
+			wrap="off"  spellcheck="false"
+		></textarea>
+	</div>
+
+	<div>
+		<button onclick="buttonFind_Clicked()">Find</button>
+		<label>entries where:</label>
+		<select id="selectFieldName"></select>
+		<label>contains</label>
+		<input id="inputTextToSearchFor"></input>
+	</div>
+
+	<div>
+		<label>Entries Matching Search Criterion:</label>
+		<br />
+		<textarea
+			id="textareaEntriesMatchingSearchCriterion"
+			cols="80" rows="10"
+			wrap="off" spellcheck="false"
+		></textarea>
+	</div>
+
+</div>
+
+<script type="text/javascript">
+
+// UI event handlers.
+
+function buttonFind_Clicked()
+{
+	var d = document;
+
+	var selectFieldName =
+		d.getElementById("selectFieldName");
+	var fieldName = selectFieldName.value;
+
+	var inputTextToSearchFor =
+		d.getElementById("inputTextToSearchFor");
+	var valueToMatch = inputTextToSearchFor.value;
+
+	var csvSearchCriterion = new CsvSearchCriterion
+	(
+		fieldName, valueToMatch
+	);
+
+	var csvSearcher = CsvSearcher.Instance; // todo
+
+	csvSearcher.entriesMatchingSearchCriterionFind
+	(
+		csvSearchCriterion
+	);
+}
+
+function inputFile_Changed(inputFile)
+{
+	var file = inputFile.files[0];
+	if (file != null)
+	{
+		var fileReader = new FileReader();
+		fileReader.onload = (event) =>
+		{
+			var text = event.target.result;
+			var csvSearcher = CsvSearcher.Instance;
+			csvSearcher.entriesAllSetFromTextCsv(text);
+		};
+		fileReader.readAsText(file);
+	}
+}
+
+// Classes.
+
+class CsvSearchCriterion
+{
+	constructor(fieldName, valueToMatch)
+	{
+		this.fieldName = fieldName;
+		this.valueToMatch = valueToMatch;
+	}
+}
+
+class CsvSearcher
+{
+	static Instance = new CsvSearcher();
+
+	entriesAllSetFromTextCsv(textInCsvFormat)
+	{
+		var newline = "\n";
+		var lines = textInCsvFormat.split(newline);
+		var line0 = lines[0];
+		this. fieldNames = line0.split(",");
+		lines = lines.slice(1);
+		this.entriesAll = lines.map
+		(
+			x => CsvSearcher.entryBuildFromLine(x)
+		);
+
+		this.domUpdate();
+	}
+
+	static entryBuildFromLine(line)
+	{
+		var fieldsSoFar = [];
+		var fieldCurrent = "";
+
+		var isInQuote = false;
+
+		for (var i = 0; i < line.length; i++)
+		{
+			var lineChar = line[i];
+			var lineCharNext = line[i + 1];
+
+			if (isInQuote)
+			{
+				if (lineChar == "\"")
+				{
+					if (lineCharNext == "\"")
+					{
+						fieldCurrent += "\"";
+						i++;
+					}
+					else
+					{
+						isInQuote = false;
+					}
+				}
+				else
+				{
+					fieldCurrent += lineChar;
+				}
+			}
+			else if (lineChar == "\"")
+			{
+				isInQuote = true;
+			}
+			else if (lineChar == ",")
+			{
+				fieldsSoFar.push(fieldCurrent);
+				fieldCurrent = "";
+			}
+			else
+			{
+				fieldCurrent += lineChar;
+			}
+		}
+
+		return fieldsSoFar;
+	}
+
+	entriesMatchingSearchCriterionFind(searchCriterion)
+	{
+		var fieldName = searchCriterion.fieldName;
+		var fieldIndex = this.fieldNames.indexOf(fieldName);
+		var fieldValueToMatch = searchCriterion.valueToMatch;
+
+		this.entriesMatchingSearchCriterion = this.entriesAll.filter
+		(
+			x =>
+			{
+				return (x[fieldIndex].indexOf(fieldValueToMatch) >= 0);
+			}
+		);
+
+		this.domUpdate();
+	}
+
+	// DOM.
+
+	domUpdate()
+	{
+		var d = document;
+
+		var newline = "\n";
+
+		var textareaDataAsCsv =
+			d.getElementById("textreaDataAsCsv");
+		textareaDataAsCsv.value = this.entriesAll.join(newline);
+
+		var selectFieldNames =
+			d.getElementById("selectFieldName");
+		if (selectFieldNames.options.length == 0)
+		{
+			selectFieldNames.innerHTML = "";
+			var fieldNamesAsOptionElements =
+				this.fieldNames.map
+				(
+					x =>
+					{
+						var option = d.createElement("option");
+						option.innerHTML = x;
+						return option;
+					}
+				);
+			fieldNamesAsOptionElements.forEach
+			(
+				x => selectFieldNames.appendChild(x)
+			);
+		}
+
+		if (this.entriesMatchingSearchCriterion != null)
+		{
+			var entriesMatchingSearchCriterionAsString =
+				this.entriesMatchingSearchCriterion.map
+				(
+					x => x.join(",")
+				).join(newline);
+
+			var textareaEntriesMatchingSearchCriterion =
+				d.getElementById("textareaEntriesMatchingSearchCriterion");
+			textareaEntriesMatchingSearchCriterion.value =
+				entriesMatchingSearchCriterionAsString;
+		}
+	}
+}
+
+</script>
+</body>
+</html>
