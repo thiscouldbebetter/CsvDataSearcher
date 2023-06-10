@@ -9,7 +9,8 @@
 		Upload a data file in CSV ("Comma-Separated Value") format,
 		and with the field headings given on the first time,
 		then enter search criterion and click the Find button
-		to find matching entries.
+		to find matching entries.  A test data file is provided
+		<a href="../TestData/Project_Gutenberg-Catalog-20230607.csv">here</a>.
 	</p>
 
 	<div>
@@ -34,6 +35,7 @@
 
 	<div>
 		<label>Entries Matching Search Criterion:</label>
+		<button onclick="buttonSearchWithinResults_Clicked()">^ Search Within These Results ^</button>
 		<br />
 		<textarea
 			id="textareaEntriesMatchingSearchCriterion"
@@ -70,6 +72,21 @@ function buttonFind_Clicked()
 	csvSearcher.entriesMatchingSearchCriterionFind
 	(
 		csvSearchCriterion
+	);
+}
+
+function buttonSearchWithinResults_Clicked()
+{
+	var d = document;
+	var textareaEntriesMatchingSearchCriterion =
+		d.getElementById("textareaEntriesMatchingSearchCriterion");
+	var entriesMatchingSearchCriterionAsString =
+		textareaEntriesMatchingSearchCriterion.value;
+
+	var csvSearcher = CsvSearcher.Instance;
+	csvSearcher.entriesAllSetFromTextCsv
+	(
+		entriesMatchingSearchCriterionAsString
 	);
 }
 
@@ -225,6 +242,13 @@ class CsvSearcher
 				(
 					x => x.join(",")
 				).join(newline);
+
+			var fieldNamesAsString = this.fieldNames.join(",");
+
+			entriesMatchingSearchCriterionAsString =
+				fieldNamesAsString
+				+ newline
+				+ entriesMatchingSearchCriterionAsString;
 
 			var textareaEntriesMatchingSearchCriterion =
 				d.getElementById("textareaEntriesMatchingSearchCriterion");
